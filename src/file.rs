@@ -341,11 +341,15 @@ impl Ext4File {
         let mut fblock = 0;
         unsafe {
             let mut inode_ref = ext4_inode_ref {
-                block: todo!(),
-                inode: todo!(),
-                fs: todo!(),
-                index: todo!(),
-                dirty: todo!(),
+                block: ext4_block {
+                    lb_id: 0,
+                    buf: core::ptr::null_mut(),
+                    data: core::ptr::null_mut(),
+                },
+                inode: core::ptr::null_mut(),
+                fs: core::ptr::null_mut(),
+                index: 0,
+                dirty: false,
             };
             let r = ext4_fs_get_inode_ref(
                 &mut (*self.file_desc.mp).fs,
