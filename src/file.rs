@@ -1,11 +1,11 @@
+use alloc::{ffi::CString, vec::Vec};
 use core::convert::TryInto;
 
 use crate::bindings::*;
-use alloc::{ffi::CString, vec::Vec};
 
 // Ext4File文件操作与block device设备解耦了
 pub struct Ext4File {
-    //file_desc_map: BTreeMap<CString, ext4_file>,
+    // file_desc_map: BTreeMap<CString, ext4_file>,
     file_desc: ext4_file,
     file_path: CString,
 
@@ -59,7 +59,7 @@ impl Ext4File {
                 path
             );
         }
-        //let to_map = c_path.clone();
+        // let to_map = c_path.clone();
         let c_path = c_path.into_raw();
         let flags = Self::flags_to_cstring(flags);
         let flags = flags.into_raw();
@@ -74,7 +74,7 @@ impl Ext4File {
             error!("ext4_fopen: {}, rc = {}", path, r);
             return Err(r);
         }
-        //self.file_desc_map.insert(to_map, fd); // store c_path
+        // self.file_desc_map.insert(to_map, fd); // store c_path
         debug!("file_open {}, mp={:#x}", path, self.file_desc.mp as usize);
         Ok(EOK as usize)
     }
@@ -122,13 +122,13 @@ impl Ext4File {
         let c_path = CString::new(path).expect("CString::new failed");
         let c_path = c_path.into_raw();
         let mtype = types.clone();
-        let r = unsafe { ext4_inode_exist(c_path, types as i32) }; //eg: types: EXT4_DE_REG_FILE
+        let r = unsafe { ext4_inode_exist(c_path, types as i32) }; // eg: types: EXT4_DE_REG_FILE
         unsafe {
             drop(CString::from_raw(c_path));
         }
         if r == EOK as i32 {
             debug!("{:?} {} Exist", mtype, path);
-            true //Exist
+            true // Exist
         } else {
             debug!("{:?} {} No Exist. ext4_inode_exist rc = {}", mtype, path, r);
             false
@@ -214,21 +214,6 @@ impl Ext4File {
         Ok(rw_count)
     }
 
-    /*
-    pub fn file_close(&mut self, path: &str) -> Result<usize, i32> {
-        let cstr_path = CString::new(path).unwrap();
-        if let Some(mut fd) = self.file_desc_map.remove(&cstr_path) {
-            unsafe {
-                ext4_fclose(&mut fd);
-            }
-            Ok(0)
-        } else {
-            error!("Can't find file descriptor of {}", path);
-            Err(-1)
-        }
-    }
-    */
-
     pub fn file_write(&mut self, buf: &[u8]) -> Result<usize, i32> {
         let mut rw_count = 0;
         let r = unsafe {
@@ -259,7 +244,7 @@ impl Ext4File {
     }
 
     pub fn file_size(&mut self) -> u64 {
-        //注，记得先 O_RDONLY 打开文件
+        // 注，记得先 O_RDONLY 打开文件
         unsafe { ext4_fsize(&mut self.file_desc) }
     }
 
@@ -338,7 +323,7 @@ impl Ext4File {
     }
 
     pub fn file_get_blk_idx(&mut self) -> Result<u64, i32> {
-        let mut fblock = 0;
+        let block_idx;
         unsafe {
             let mut inode_ref = ext4_inode_ref {
                 block: ext4_block {
@@ -363,18 +348,23 @@ impl Ext4File {
             let sb = (*self.file_desc.mp).fs.sb;
             let block_size = 1024 << sb.log_block_size.to_le();
             let iblock_idx: ext4_lblk_t = ((self.file_desc.fpos) / block_size).try_into().unwrap();
+            let mut fblock = 0;
             let r = ext4_fs_get_inode_dblk_idx(&mut inode_ref, iblock_idx, &mut fblock, true);
             if r != EOK as i32 {
                 error!("ext4_fs_get_inode_dblk_idx: rc = {}", r);
                 return Err(r);
             }
             ext4_fs_put_inode_ref(&mut inode_ref);
+
+            let unalg = (self.file_desc.fpos) % block_size;
+            let bdev = *(*self.file_desc.mp).fs.bdev;
+            let off = fblock * block_size + unalg;
+            block_idx = (off + bdev.part_offset) / ((*(bdev.bdif)).ph_bsize as u64);
         }
-        // WARN: may be not finished
-        Ok(fblock)
+        Ok(block_idx)
     }
 
-    /********* DIRECTORY OPERATION *********/
+    /// ******* DIRECTORY OPERATION ********
 
     /// Create new directory
     pub fn dir_mk(&mut self, path: &str) -> Result<usize, i32> {
@@ -444,7 +434,7 @@ impl Ext4File {
         let mut name: Vec<Vec<u8>> = Vec::new();
         let mut inode_type: Vec<InodeTypes> = Vec::new();
 
-        //info!("ls {}", str::from_utf8(path).unwrap());
+        // info!("ls {}", str::from_utf8(path).unwrap());
         unsafe {
             ext4_dir_open(&mut d, c_path);
             drop(CString::from_raw(c_path));
@@ -479,16 +469,14 @@ impl Ext4File {
     }
 }
 
-/*
-pub enum OpenFlags {
-O_RDONLY = 0,
-O_WRONLY = 0x1,
-O_RDWR = 0x2,
-O_CREAT = 0x40,
-O_TRUNC = 0x200,
-O_APPEND = 0x400,
-}
-*/
+// pub enum OpenFlags {
+// O_RDONLY = 0,
+// O_WRONLY = 0x1,
+// O_RDWR = 0x2,
+// O_CREAT = 0x40,
+// O_TRUNC = 0x200,
+// O_APPEND = 0x400,
+// }
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum InodeTypes {

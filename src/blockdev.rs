@@ -1,19 +1,22 @@
+use alloc::{boxed::Box, ffi::CString};
+use core::{
+    ffi::{c_char, c_void},
+    ptr::null_mut,
+    slice::{from_raw_parts, from_raw_parts_mut},
+    str,
+};
+
 use crate::bindings::*;
-use alloc::boxed::Box;
-use alloc::ffi::CString;
-use core::ffi::{c_char, c_void};
-use core::ptr::null_mut;
-use core::slice::{from_raw_parts, from_raw_parts_mut};
-use core::str;
 
 /// Device block size.
 const EXT4_DEV_BSIZE: u32 = 512;
 
 pub trait KernelDevOp {
-    //type DevType: ForeignOwnable + Sized + Send + Sync = ();
+    // type DevType: ForeignOwnable + Sized + Send + Sync = ();
     type DevType;
 
-    //fn write(dev: <Self::DevType as ForeignOwnable>::Borrowed<'_>, buf: &[u8]) -> Result<usize, i32>;
+    // fn write(dev: <Self::DevType as ForeignOwnable>::Borrowed<'_>, buf: &[u8]) ->
+    // Result<usize, i32>;
     fn write(dev: &mut Self::DevType, buf: &[u8]) -> Result<usize, i32>;
     fn read(dev: &mut Self::DevType, buf: &mut [u8]) -> Result<usize, i32>;
     fn seek(dev: &mut Self::DevType, off: i64, whence: i32) -> Result<i64, i32>;
@@ -24,7 +27,7 @@ pub trait KernelDevOp {
 
 pub struct Ext4BlockWrapper<K: KernelDevOp> {
     value: Box<ext4_blockdev>,
-    //block_dev: K::DevType,
+    // block_dev: K::DevType,
     name: [u8; 16],
     mount_point: [u8; 32],
     pd: core::marker::PhantomData<K>,
@@ -34,8 +37,8 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
     pub fn new(block_dev: K::DevType) -> Result<Self, i32> {
         // note this ownership
         let devt_user = Box::into_raw(Box::new(block_dev)) as *mut c_void;
-        //let devt_user = devt.as_mut() as *mut _ as *mut c_void;
-        //let devt_user = &mut block_dev as *mut _ as *mut c_void;
+        // let devt_user = devt.as_mut() as *mut _ as *mut c_void;
+        // let devt_user = &mut block_dev as *mut _ as *mut c_void;
 
         // Block size buffer
         let bbuf = Box::new([0u8; EXT4_DEV_BSIZE as usize]);
@@ -72,7 +75,7 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
 
         let c_name = CString::new("ext4_fs").expect("CString::new ext4_fs failed");
         let c_name = c_name.as_bytes_with_nul(); // + '\0'
-                                                 //let c_mountpoint = CString::new("/mp/").unwrap();
+                                                 // let c_mountpoint = CString::new("/mp/").unwrap();
         let c_mountpoint = CString::new("/").unwrap();
         let c_mountpoint = c_mountpoint.as_bytes_with_nul();
 
@@ -83,7 +86,7 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
 
         let mut ext4bd = Self {
             value: Box::new(ext4dev),
-            //block_dev,
+            // block_dev,
             name,
             mount_point,
             pd: core::marker::PhantomData,
@@ -115,7 +118,7 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
             error!("Invalid null pointer of p_user");
             return EIO as _;
         }
-        //let mut devt = Box::from_raw(p_user as *mut K::DevType);
+        // let mut devt = Box::from_raw(p_user as *mut K::DevType);
         let devt = unsafe { &mut *(p_user as *mut K::DevType) };
 
         // buffering at Disk
@@ -131,7 +134,7 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
         };
 
         (*bdev).part_offset = 0;
-        (*bdev).part_size = cur as u64; //ftello()
+        (*bdev).part_size = cur as u64; // ftello()
         (*(*bdev).bdif).ph_bcnt = (*bdev).part_size / (*(*bdev).bdif).ph_bsize as u64;
         EOK as _
     }
@@ -178,9 +181,9 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
         debug!("WRITE Ext4 block id: {}, count: {}", blk_id, blk_cnt);
 
         let devt = unsafe { &mut *((*(*bdev).bdif).p_user as *mut K::DevType) };
-        //let mut devt = unsafe { K::DevType::borrow_mut((*(*bdev).bdif).p_user) };
-        //let mut devt = unsafe { K::DevType::from_foreign((*(*bdev).bdif).p_user) };
-        //let mut devt = Box::from_raw((*(*bdev).bdif).p_user as *mut K::DevType);
+        // let mut devt = unsafe { K::DevType::borrow_mut((*(*bdev).bdif).p_user) };
+        // let mut devt = unsafe { K::DevType::from_foreign((*(*bdev).bdif).p_user) };
+        // let mut devt = Box::from_raw((*(*bdev).bdif).p_user as *mut K::DevType);
 
         let seek_off = K::seek(
             devt,
@@ -211,7 +214,7 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
     }
     pub unsafe extern "C" fn dev_close(_bdev: *mut ext4_blockdev) -> ::core::ffi::c_int {
         debug!("CLOSE Ext4 block device");
-        //fclose(dev_file);
+        // fclose(dev_file);
         EOK as _
     }
 
@@ -330,7 +333,7 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
     }
 
     pub fn print_lwext4_mp_stats(&self) {
-        //struct ext4_mount_stats stats;
+        // struct ext4_mount_stats stats;
         let mut stats: ext4_mount_stats = unsafe { core::mem::zeroed() };
 
         let c_mountpoint = &self.mount_point as *const _ as *const c_char;
@@ -357,7 +360,7 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
 
     pub fn print_lwext4_block_stats(&self) {
         let ext4dev = &(self.value);
-        //if ext4dev.is_null { return; }
+        // if ext4dev.is_null { return; }
 
         info!("********************");
         info!("ext4 blockdev stats");
