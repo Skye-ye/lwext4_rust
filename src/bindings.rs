@@ -2260,8 +2260,24 @@ pub struct __va_list_tag {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ext4_mountpoint {
-    pub _address: u8,
+    /**@brief   Mount done flag.*/
+    pub mounted: ::core::ffi::c_char,
+    /**@brief   Mount point name (@ref ext4_mount)*/
+    pub name: [::core::ffi::c_char; (CONFIG_EXT4_MAX_MP_NAME + 1) as usize],
+    /**@brief   OS dependent lock/unlock functions.*/
+    pub os_locks: *mut ext4_lock,
+    /**@brief   Ext4 filesystem internals.*/
+    pub fs: ext4_fs,
+    /*/**@brief   JBD fs.*/*/
+    /*struct jbd_fs jbd_fs;*/
+    /**/
+    /*/**@brief   Journal.*/*/
+    /*struct jbd_journal jbd_journal;*/
+    /**/
+    /*/**@brief   Block cache.*/*/
+    /*struct ext4_bcache bc;*/
 }
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct jbd_fs {

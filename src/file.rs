@@ -1,3 +1,5 @@
+use core::convert::TryInto;
+
 use crate::bindings::*;
 use alloc::{ffi::CString, vec::Vec};
 
@@ -328,6 +330,39 @@ impl Ext4File {
         debug!("Inode mode types: {:?}", itypes);
 
         itypes
+    }
+
+    pub fn file_get_blk_idx(&mut self) -> Result<u64, i32> {
+        let mut fblock = 0;
+        unsafe {
+            let mut inode_ref = ext4_inode_ref {
+                block: todo!(),
+                inode: todo!(),
+                fs: todo!(),
+                index: todo!(),
+                dirty: todo!(),
+            };
+            let r = ext4_fs_get_inode_ref(
+                &mut (*self.file_desc.mp).fs,
+                self.file_desc.inode,
+                &mut inode_ref,
+            );
+            if r != EOK as i32 {
+                error!("ext4_fs_get_inode_ref: rc = {}", r);
+                return Err(r);
+            }
+            let sb = (*self.file_desc.mp).fs.sb;
+            let block_size = 1024 << sb.log_block_size.to_le();
+            let iblock_idx: ext4_lblk_t = ((self.file_desc.fpos) / block_size).try_into().unwrap();
+            let r = ext4_fs_get_inode_dblk_idx(&mut inode_ref, iblock_idx, &mut fblock, true);
+            if r != EOK as i32 {
+                error!("ext4_fs_get_inode_dblk_idx: rc = {}", r);
+                return Err(r);
+            }
+            ext4_fs_put_inode_ref(&mut inode_ref);
+        }
+        // WARN: may be not finished
+        Ok(fblock)
     }
 
     /********* DIRECTORY OPERATION *********/
