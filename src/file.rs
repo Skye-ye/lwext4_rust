@@ -188,6 +188,11 @@ impl Ext4File {
         Ok(EOK as usize)
     }
 
+    pub fn file_tell(&mut self) -> u64 {
+        let r = unsafe { ext4_ftell(&mut self.file_desc) };
+        r
+    }
+
     pub fn file_read(&mut self, buff: &mut [u8]) -> Result<usize, i32> {
         let mut rw_count = 0;
         let r = unsafe {
