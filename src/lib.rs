@@ -56,7 +56,7 @@ pub fn lwext4_mvdir(path: &str, new_path: &str) -> Result<(), i32> {
     match r {
         0 => Ok(()),
         _ => {
-            error!("ext4_dir_mv error: rc = {}", r);
+            error!("ext4_dir_mv error: rc = {r}, path = {path}");
             Err(r)
         }
     }
@@ -70,7 +70,7 @@ pub fn lwext4_mvfile(path: &str, new_path: &str) -> Result<(), i32> {
     match r {
         0 => Ok(()),
         _ => {
-            error!("ext4_frename error: rc = {}", r);
+            error!("ext4_frename error: rc = {r}, path = {path}");
             Err(r)
         }
     }
@@ -83,7 +83,7 @@ pub fn lwext4_rmdir(path: &str) -> Result<(), i32> {
     match r {
         0 => Ok(()),
         e => {
-            error!("ext4_dir_rm: rc = {}", r);
+            error!("ext4_dir_rm: rc = {r}, path = {path}");
             Err(e)
         }
     }
@@ -96,7 +96,7 @@ pub fn lwext4_rmfile(path: &str) -> Result<(), i32> {
     match r {
         0 => Ok(()),
         _ => {
-            error!("ext4_fremove error: rc = {}", r);
+            error!("ext4_fremove error: rc = {r}, path = {path}");
             Err(r)
         }
     }
@@ -117,7 +117,7 @@ pub fn lwext4_readlink(path: &str, buf: &mut [u8]) -> Result<usize, i32> {
     match r {
         0 => Ok(r_cnt),
         _ => {
-            error!("ext4_readlink: rc = {}", r);
+            error!("ext4_readlink: rc = {r}, path = {path}");
             Err(r)
         }
     }
