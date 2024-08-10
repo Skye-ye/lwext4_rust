@@ -23,7 +23,7 @@ pub mod file;
 use alloc::ffi::CString;
 
 use bindings::{
-    ext4_dir_mv, ext4_dir_rm, ext4_fremove, ext4_frename, ext4_inode_exist, ext4_mode_get, EOK,
+    ext4_dir_mv, ext4_dir_rm, ext4_flink, ext4_fremove, ext4_frename, ext4_fsymlink, ext4_inode_exist, ext4_mode_get, EOK
 };
 pub use blockdev::*;
 pub use dir::Ext4Dir;
@@ -113,11 +113,36 @@ pub fn lwext4_readlink(path: &str, buf: &mut [u8]) -> Result<usize, i32> {
             &mut r_cnt,
         )
     };
-
     match r {
         0 => Ok(r_cnt),
         _ => {
             error!("ext4_readlink: rc = {r}, path = {path}");
+            Err(r)
+        }
+    }
+}
+
+pub fn lwext4_symlink(target: &str, path: &str) -> Result<(), i32> {
+    let c_target = CString::new(target).expect("CString::new failed");
+    let c_path = CString::new(path).expect("CString::new failed");
+    let r = unsafe { ext4_fsymlink(c_target.as_ptr(), c_path.as_ptr()) };
+    match r {
+        0 => Ok(()),
+        _ => {
+            error!("ext4_fsymlink: rc = {r}, path = {path}");
+            Err(r)
+        }
+    }
+}
+
+pub fn lwext4_link(path: &str, hardlink_path: &str) -> Result<(), i32> {
+    let c_path = CString::new(path).expect("CString::new failed");
+    let c_hardlink_path = CString::new(hardlink_path).expect("CString::new failed");
+    let r = unsafe { ext4_flink(c_path.as_ptr(), c_hardlink_path.as_ptr()) };
+    match r {
+        0 => Ok(()),
+        _ => {
+            error!("ext4_flink: rc = {r}, path = {path}");
             Err(r)
         }
     }
