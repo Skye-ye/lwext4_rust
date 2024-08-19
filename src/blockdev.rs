@@ -250,7 +250,10 @@ impl<K: KernelDevOp> Ext4BlockWrapper<K> {
         //     error!("ext4_journal_start: rc = {:?}\n", r);
         //     return Err(r);
         // }
+        #[cfg(feature = "write-back")]
         ext4_cache_write_back(c_mountpoint, true);
+        #[cfg(not(feature = "write-back"))]
+        ext4_cache_write_back(c_mountpoint, false);
         // ext4_bcache
 
         info!("lwext4 mount Okay");

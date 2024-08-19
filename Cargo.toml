@@ -15,6 +15,7 @@ build = "build.rs"
 [features]
 default = ["print"]
 print = ["printf-compat"]
+write-back = []
 
 [dependencies]
 log = "0.4"
