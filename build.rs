@@ -19,17 +19,24 @@ fn main() {
         assert!(git_status.success());
 
         println!("To patch lwext4 src");
-        Command::new("git")
+        let patch_status = Command::new("git")
             .args(&["apply", lwext4_patch.to_str().unwrap()])
-            .current_dir(c_path.clone())
-            .spawn()
-            .expect("failed to execute process: git apply patch");
+            .current_dir(c_path.to_str().unwrap())
+            .status()
+            .expect("failed to execute process: git apply");
+        assert!(patch_status.success());
 
         fs::copy(
             "c/musl-generic.cmake",
             "c/lwext4/toolchain/musl-generic.cmake",
         )
         .unwrap();
+
+        if Path::new("c/lwext4/toolchain/musl-generic.cmake").exists() {
+            println!("Successfully created musl-generic.cmake file");
+        } else {
+            println!("Failed to create musl-generic.cmake file");
+        }
     }
 
     let arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
@@ -58,20 +65,6 @@ fn main() {
         let sysroot_inc = &format!("-I{}/include/", sysroot);
         generates_bindings_to_rust(sysroot_inc);
     }
-
-    /* No longer need to implement the libc.a
-    let libc_name = &format!("c-{}", arch);
-    let libc_dir = env::var("LIBC_BUILD_TARGET_DIR").unwrap_or(String::from("./"));
-    let libc_dir = PathBuf::from(libc_dir)
-        .canonicalize()
-        .expect("cannot canonicalize LIBC_BUILD_TARGET_DIR");
-
-    println!("cargo:rustc-link-lib=static={libc_name}");
-    println!(
-        "cargo:rustc-link-search=native={}",
-        libc_dir.to_str().unwrap()
-    );
-    */
 
     println!("cargo:rustc-link-lib=static={lwext4_lib}");
     println!(
